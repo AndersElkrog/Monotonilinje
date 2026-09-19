@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Monotonilinje</title>
+
+<link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital@0;1&display=swap" rel="stylesheet">
+
+<style>
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    text-align: center;
+}
+
+.controls {
+    margin-bottom: 20px;
+}
+
+#container {
+    position: relative;
+    display: inline-block;
+    padding-left: 80px;
+}
+
+.label {
+    position: absolute;
+    left: 0;
+    width: 70px;
+    text-align: right;
+}
+
+#line {
+    position: absolute;
+    height: 2px;
+    background: black;
+}
+
+.tick {
+    position: absolute;
+    width: 2px;
+    height: 14px;
+    background: black;
+}
+
+.math {
+    font-family: 'STIX Two Text', serif;
+}
+
+.point-label {
+    position: absolute;
+    transform: translateX(-50%);
+}
+
+.point-label input {
+    width: 40px;
+    border: none;
+    text-align: center;
+    background: transparent;
+    font-family: 'STIX Two Text', serif;
+}
+
+.zero, .sign, .arrow {
+    position: absolute;
+    transform: translateX(-50%);
+    user-select: none;
+    font-family: 'STIX Two Text', serif;
+}
+
+/* Hover-effekt på +/- */
+.sign {
+    cursor: pointer;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.sign:hover {
+    color: #0077cc;
+    transform: translateX(-50%) scale(1.15);
+}
+
+</style>
+</head>
+<body>
+
+<div class="controls">
+    <strong>Antal nulpunkter:</strong>
+    <button onclick="addZero()">+</button>
+    <button onclick="removeZero()">−</button>
+</div>
+
+<div id="container"></div>
+
+<script>
+let zeros = ["", ""];
+let signs = ["+", "+", "-"];
+const segmentWidth = 90;
+
+function render() {
+
+    const container = document.getElementById("container");
+    container.innerHTML = "";
+
+    const totalWidth = segmentWidth * (zeros.length + 1);
+    container.style.width = (totalWidth + 80) + "px";
+    container.style.height = "130px";
+
+    const lineY = 40;
+    const xRowY = lineY - 25;
+    const fPrimeY = lineY + 12;
+    const fY = lineY + 45;
+
+    container.innerHTML += `
+        <div class="label math" style="top:${xRowY}px;">
+            <span style="font-style: italic;">x</span>:
+        </div>
+        <div class="label math" style="top:${fPrimeY}px;">
+            <span style="font-style: italic;">f</span>′(<span style="font-style: italic;">x</span>):
+        </div>
+        <div class="label math" style="top:${fY}px;">
+            <span style="font-style: italic;">f</span>(<span style="font-style: italic;">x</span>):
+        </div>
+    `;
+
+    const line = document.createElement("div");
+    line.id = "line";
+    line.style.top = lineY + "px";
+    line.style.left = "80px";
+    line.style.width = totalWidth + "px";
+    container.appendChild(line);
+
+    const endArrow = document.createElement("div");
+    endArrow.style.position = "absolute";
+    endArrow.style.right = "-10px";
+    endArrow.style.top = "-8px";
+    endArrow.innerHTML = `
+        <svg width="20" height="14">
+            <polygon points="0,0 20,7 0,14" fill="black"/>
+        </svg>`;
+    line.appendChild(endArrow);
+
+    zeros.forEach((z, i) => {
+
+        const xPos = 80 + segmentWidth * (i + 1);
+
+        const tick = document.createElement("div");
+        tick.className = "tick";
+        tick.style.left = xPos + "px";
+        tick.style.top = (lineY - 7) + "px";
+        container.appendChild(tick);
+
+        const label = document.createElement("div");
+        label.className = "point-label";
+        label.style.left = xPos + "px";
+        label.style.top = xRowY + "px";
+
+        label.innerHTML = `
+            <input class="math"
+                   value="${z}"
+                   placeholder="x${i}"
+                   onclick="this.select()"
+                   oninput="updateZero(${i}, this.value)">
+        `;
+        container.appendChild(label);
+
+        const zero = document.createElement("div");
+        zero.className = "zero math";
+        zero.style.left = xPos + "px";
+        zero.style.top = fPrimeY + "px";
+        zero.textContent = "0";
+        container.appendChild(zero);
+    });
+
+    signs.forEach((s, i) => {
+
+        const xPos = 80 + segmentWidth * (i + 0.5);
+
+        const signDiv = document.createElement("div");
+        signDiv.className = "sign math";
+        signDiv.style.left = xPos + "px";
+        signDiv.style.top = fPrimeY + "px";
+        signDiv.textContent = s;
+
+        signDiv.onclick = function() {
+            signs[i] = signs[i] === "+" ? "-" : "+";
+            render();
+        };
+
+        container.appendChild(signDiv);
+
+        const arrow = document.createElement("div");
+        arrow.className = "arrow";
+        arrow.style.left = xPos + "px";
+        arrow.style.top = fY + "px";
+        arrow.innerHTML = s === "+" ? arrowUp() : arrowDown();
+        container.appendChild(arrow);
+    });
+}
+
+function updateZero(index, value) {
+    zeros[index] = value;
+}
+
+function addZero() {
+    if (zeros.length >= 5) return;
+    zeros.push("");
+    signs.push("+");
+    render();
+}
+
+function removeZero() {
+    if (zeros.length <= 1) return;
+    zeros.pop();
+    signs.pop();
+    render();
+}
+
+function arrowUp() {
+    return `
+    <svg width="70" height="35">
+        <defs>
+            <marker id="arrowheadUp" markerWidth="6" markerHeight="6"
+                refX="5" refY="3" orient="auto">
+                <polygon points="0 0, 6 3, 0 6" fill="black" />
+            </marker>
+        </defs>
+        <line x1="5" y1="30" x2="65" y2="5"
+              stroke="black" stroke-width="2"
+              marker-end="url(#arrowheadUp)" />
+    </svg>`;
+}
+
+function arrowDown() {
+    return `
+    <svg width="70" height="35">
+        <defs>
+            <marker id="arrowheadDown" markerWidth="6" markerHeight="6"
+                refX="5" refY="3" orient="auto">
+                <polygon points="0 0, 6 3, 0 6" fill="black" />
+            </marker>
+        </defs>
+        <line x1="5" y1="5" x2="65" y2="30"
+              stroke="black" stroke-width="2"
+              marker-end="url(#arrowheadDown)" />
+    </svg>`;
+}
+
+render();
+</script>
+
+</body>
+</html>
